@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7
+    container_name: dam-redis
+    ports:
+      - "6379:6379"  # Exposed to host if needed
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio
+    container_name: dam-minio
+    ports:
+      - "9000:9000"  # MinIO web/UI and API
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..  
+      dockerfile: Dockerfile
+    container_name: dam-api
+    ports:
+      - "4000:4000"
+    env_file:
+      - ../.env.docker  # Docker-specific env file
+    depends_on:
+      - redis
+      - minio
+    restart: unless-stopped
