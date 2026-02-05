@@ -1,8 +1,5 @@
 import { Router } from "express";
-import dotenv from "dotenv";
 import { BUCKET_NAME, minioClient } from "../../config/minio.js";
-
-dotenv.config();
 
 const router = Router();
 
