@@ -1,8 +1,8 @@
 import { Router } from "express";
 import multer from "multer";
 import crypto from "crypto";
-import { minioClient } from "../config/minio.js";
-import { assetQueue } from "../config/queue.js";
+import { minioClient } from "../../config/minio.js";
+import { assetQueue } from "../../config/queue.js";
 import dotenv from "dotenv";
 
 dotenv.config();
