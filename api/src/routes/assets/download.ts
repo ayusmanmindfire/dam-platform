@@ -1,24 +1,37 @@
 import { Router } from "express";
-import { BUCKET_NAME, minioClient } from "../../config/minio.js";
+import { minioClient } from "../../config/minio.js";
+import { redis } from "../../config/redist.js";
 
 const router = Router();
-router.get("/:assetId/download", async (req, res) => {
-  const { assetId } = req.params;
 
+router.get("/download/:id", async (req, res) => {
   try {
-    const stream = minioClient.listObjectsV2(
-      BUCKET_NAME,
-      `raw/${assetId}`,
-      true
+    const { id } = req.params;
+    const { type } = req.query; // 'original' or 'thumbnail'
+
+    const asset = await redis.hgetall(`asset:${id}`);
+
+    if (!asset || Object.keys(asset).length === 0) {
+      return res.status(404).json({ success: false, message: "Asset not found" });
+    }
+
+    let objectName = asset.objectName;
+    if (type === "thumbnail" && asset.thumbnail) {
+      objectName = asset.thumbnail;
+    }
+
+    if (!objectName) {
+      return res.status(404).json({ success: false, message: "Asset file not found" });
+    }
+
+    // Generate Presigned URL (valid for 1 hour)
+    const url = await minioClient.presignedGetObject(
+      process.env.MINIO_BUCKET_NAME || "assets",
+      objectName,
+      60 * 60
     );
 
-    stream.on("data", async (obj) => {
-      if (!obj.name) return;
-
-      const fileStream = await minioClient.getObject(BUCKET_NAME, obj.name);
-      res.setHeader("Content-Disposition", `attachment`);
-      fileStream.pipe(res);
-    });
+    res.json({ success: true, url });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });

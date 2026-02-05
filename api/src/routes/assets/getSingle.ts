@@ -1,37 +1,18 @@
 import { Router } from "express";
-import { BUCKET_NAME, minioClient } from "../../config/minio.js";
+import { redis } from "../../config/redist.js";
 
 const router = Router();
-router.get("/:assetId", async (req, res) => {
-  const { assetId } = req.params;
 
+router.get("/:id", async (req, res) => {
   try {
-    const objects: any[] = [];
-    const stream = minioClient.listObjectsV2(
-      BUCKET_NAME,
-      `raw/${assetId}`,
-      true
-    );
+    const { id } = req.params;
+    const asset = await redis.hgetall(`asset:${id}`);
 
-    stream.on("data", (obj) => objects.push(obj));
+    if (!asset || Object.keys(asset).length === 0) {
+      return res.status(404).json({ success: false, message: "Asset not found" });
+    }
 
-    stream.on("end", () => {
-      if (!objects.length) {
-        return res.status(404).json({ success: false, message: "Asset not found" });
-      }
-
-      const file = objects[0];
-
-      res.json({
-        success: true,
-        data: {
-          assetId,
-          objectName: file.name,
-          size: file.size,
-          lastModified: file.lastModified,
-        },
-      });
-    });
+    res.json({ success: true, data: asset });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false });

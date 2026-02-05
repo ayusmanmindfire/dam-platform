@@ -3,6 +3,7 @@ import multer from "multer";
 import crypto from "crypto";
 import { minioClient } from "../../config/minio.js";
 import { assetQueue } from "../../config/queue.js";
+import { redis } from "../../config/redist.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -31,7 +32,23 @@ router.post("/", upload.single("file"), async (req, res) => {
       }
     );
 
-    // Push job to queue
+    // 2. Store internal metadata in Redis
+    const now = new Date().toISOString();
+    await redis.hset(`asset:${assetId}`, {
+      id: assetId,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      objectName,
+      status: "processing", // initial status
+      uploadDate: now,
+    });
+
+    // Add to a "all assets" list (Sorted Set by date desc)
+    const timestamp = Date.now();
+    await redis.zadd("assets:all", timestamp, assetId);
+
+    // 3. Push job to queue
     await assetQueue.add("process-asset", {
       assetId,
       objectName,
