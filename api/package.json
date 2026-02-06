@@ -8,7 +8,11 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsc --watch",
-    "worker": "tsx src/worker.ts"
+    "worker": "tsx src/worker.ts",
+    "docker:build": "docker build -t ayusmanmindfire/dam-api:latest .",
+    "docker:push": "docker push ayusmanmindfire/dam-api:latest",
+    "swarm:deploy": "docker stack deploy -c infra/swarm.yml dam-stack",
+    "swarm:rm": "docker stack rm dam-stack"
   },
   "keywords": [],
   "author": "",

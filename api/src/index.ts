@@ -4,6 +4,7 @@ import uploadRoute from "./routes/assets/upload.js"
 import getAllAssetsRoute from "./routes/assets/allAssets.js";
 import downloadRoute from "./routes/assets/download.js";
 import getSingleAssetRoute from "./routes/assets/getSingle.js";
+import statsRoute from "./routes/admin/stats.js";
 import dotenv from "dotenv";
 import { redis } from "./config/redist.js";
 
@@ -24,6 +25,9 @@ app.use("/upload", uploadRoute);
 app.use("/assets", getAllAssetsRoute);
 app.use("/assets", getSingleAssetRoute);
 app.use("/assets", downloadRoute);
+
+// admin routes
+app.use("/admin", statsRoute);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {

@@ -1,14 +1,15 @@
 import { Client } from "minio";
 import dotenv from "dotenv";
+import { getSecret } from "./secrets.js";
 
 dotenv.config();
 
 export const minioClient = new Client({
-    endPoint: process.env.MINIO_ENDPOINT || "localhost",
-    port: Number(process.env.MINIO_PORT) || 9000,
-    useSSL: process.env.MINIO_USE_SSL === "false",
-    accessKey: process.env.MINIO_ACCESS_KEY || "minioadmin",
-    secretKey: process.env.MINIO_SECRET_KEY || "minioadmin",
+  endPoint: process.env.MINIO_ENDPOINT || "localhost",
+  port: Number(process.env.MINIO_PORT) || 9000,
+  useSSL: process.env.MINIO_USE_SSL === "false",
+  accessKey: getSecret("minio_access_key", "minioadmin"),
+  secretKey: getSecret("minio_secret_key", "minioadmin"),
 });
 
 export const BUCKET_NAME = process.env.MINIO_BUCKET_NAME || "assets";

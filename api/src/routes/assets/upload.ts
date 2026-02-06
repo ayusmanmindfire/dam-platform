@@ -11,57 +11,68 @@ dotenv.config();
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", upload.array("files"), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
+    if (!req.files || (req.files as Express.Multer.File[]).length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
 
-    const file = req.file;
-    const assetId = crypto.randomUUID();
-    const objectName = `raw/${assetId}-${file.originalname}`;
+    const files = req.files as Express.Multer.File[];
+    const uploadedAssets = [];
 
-    // 1️Upload raw file to MinIO
-    await minioClient.putObject(
-      process.env.MINIO_BUCKET_NAME || "assets",
-      objectName,
-      file.buffer,
-      file.size,
-      {
-        "Content-Type": file.mimetype,
+    for (const file of files) {
+      const assetId = crypto.randomUUID();
+      const objectName = `raw/${assetId}-${file.originalname}`;
+
+      // 1. Upload raw file to MinIO
+      await minioClient.putObject(
+        process.env.MINIO_BUCKET_NAME || "assets",
+        objectName,
+        file.buffer,
+        file.size,
+        {
+          "Content-Type": file.mimetype,
+        }
+      );
+
+      // 2. Store internal metadata in Redis
+      const now = new Date().toISOString();
+      await redis.hset(`asset:${assetId}`, {
+        id: assetId,
+        originalName: file.originalname,
+        mimeType: file.mimetype,
+        size: file.size,
+        objectName,
+        status: "processing",
+        uploadDate: now,
+      });
+
+      // Add to sets
+      const timestamp = Date.now();
+      await redis.zadd("assets:all", timestamp, assetId);
+
+      if (file.mimetype.startsWith("image/")) {
+        await redis.zadd("assets:type:image", timestamp, assetId);
+      } else if (file.mimetype.startsWith("video/")) {
+        await redis.zadd("assets:type:video", timestamp, assetId);
       }
-    );
 
-    // 2. Store internal metadata in Redis
-    const now = new Date().toISOString();
-    await redis.hset(`asset:${assetId}`, {
-      id: assetId,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      objectName,
-      status: "processing", // initial status
-      uploadDate: now,
-    });
+      // 3. Push job to queue
+      await assetQueue.add("process-asset", {
+        assetId,
+        objectName,
+        mimeType: file.mimetype,
+        originalName: file.originalname,
+        size: file.size,
+      });
 
-    // Add to a "all assets" list (Sorted Set by date desc)
-    const timestamp = Date.now();
-    await redis.zadd("assets:all", timestamp, assetId);
+      uploadedAssets.push({ assetId, originalName: file.originalname });
+    }
 
-    // 3. Push job to queue
-    await assetQueue.add("process-asset", {
-      assetId,
-      objectName,
-      mimeType: file.mimetype,
-      originalName: file.originalname,
-      size: file.size,
-    });
-
-    // Respond immediately
     res.json({
       success: true,
-      assetId,
-      message: "File uploaded and queued for processing",
+      message: `${files.length} files uploaded and queued`,
+      data: uploadedAssets
     });
   } catch (err) {
     console.error(err);

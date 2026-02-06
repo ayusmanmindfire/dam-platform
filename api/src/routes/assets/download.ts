@@ -15,6 +15,9 @@ router.get("/download/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Asset not found" });
     }
 
+    // Increment download count
+    await redis.hincrby(`asset:${id}`, "downloads", 1);
+
     let objectName = asset.objectName;
     if (type === "thumbnail" && asset.thumbnail) {
       objectName = asset.thumbnail;
