@@ -1,0 +1,111 @@
+version: "3.9"
+
+secrets:
+  minio_access_key:
+    external: true
+  minio_secret_key:
+    external: true
+  redis_password:
+    external: true
+
+services:
+  redis:
+    image: redis:7
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - dam-net
+    volumes:
+      - redis-data:/data
+    secrets:
+      - redis_password
+    command: ["redis-server", "--requirepass", "$(cat /run/secrets/redis_password)"]
+
+  minio:
+    image: minio/minio
+    command: server /data
+    environment:
+      # MinIO supports reading from secrets if mounted at specific paths or via custom entrypoint
+      # But simpler: use file secret variables if image supports it, or standard envs
+      # Official MinIO image uses MINIO_ROOT_USER_FILE and MINIO_ROOT_PASSWORD_FILE
+      MINIO_ROOT_USER_FILE: /run/secrets/minio_access_key
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/minio_secret_key
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+    networks:
+      - dam-net
+    volumes:
+      - minio-data:/data
+    secrets:
+      - minio_access_key
+      - minio_secret_key
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  api:
+    image: ayusmanmindfire/dam-api:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    environment:
+      - PORT=4000
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_BUCKET_NAME=assets
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+    ports:
+      - "4000:4000"
+    networks:
+      - dam-net
+    depends_on:
+      - redis
+      - minio
+    secrets:
+      - minio_access_key
+      - minio_secret_key
+      - redis_password
+
+  worker:
+    image: ayusmanmindfire/dam-api:latest
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    command: npm run worker
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MINIO_ENDPOINT=minio
+      - MINIO_PORT=9000
+      - MINIO_BUCKET_NAME=assets
+    deploy:
+      replicas: 3
+    networks:
+      - dam-net
+    depends_on:
+      - redis
+      - minio
+    secrets:
+      - minio_access_key
+      - minio_secret_key
+      - redis_password
+
+networks:
+  dam-net:
+    driver: overlay
+
+volumes:
+  redis-data:
+  minio-data:
