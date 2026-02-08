@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
 import { Layout } from './components/Layout';
 import { Upload } from './components/Upload';
 import { Dashboard } from './pages/Dashboard';
@@ -22,6 +23,7 @@ function App() {
           </Routes>
         </Layout>
       </Router>
+      <Toaster />
     </QueryClientProvider>
   );
 }
