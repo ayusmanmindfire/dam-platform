@@ -1,7 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
-import type { Stats } from '../types';
+import { assetService } from '../services/assetService';
 import { BarChart, PieChart, Activity, HardDrive } from 'lucide-react';
 
 const StatCard: React.FC<{ title: string; value: string | number; icon: React.ReactNode; color: string }> = ({ title, value, icon, color }) => (
@@ -19,10 +18,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: React.Re
 export const Dashboard: React.FC = () => {
     const { data: stats, isLoading } = useQuery({
         queryKey: ['stats'],
-        queryFn: async () => {
-            const res = await api.get<{ success: boolean; stats: Stats }>('/admin/stats');
-            return res.data.stats;
-        }
+        queryFn: assetService.getStats
     });
 
     if (isLoading) {

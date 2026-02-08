@@ -15,11 +15,18 @@ router.get("/download/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Asset not found" });
     }
 
-    // Increment download count
-    await redis.hincrby(`asset:${id}`, "downloads", 1);
+    // Increment download count (only for original)
+    if (type !== 'thumbnail') {
+      await redis.hincrby(`asset:${id}`, "downloads", 1);
+    }
 
     let objectName = asset.objectName;
-    if (type === "thumbnail" && asset.thumbnail) {
+    if (type === "thumbnail") {
+      if (!asset.thumbnail) {
+        // If no thumbnail yet, maybe return a placeholder or 404
+        // returning 404 for now so frontend handles fallback
+        return res.status(404).json({ message: "Thumbnail not ready" });
+      }
       objectName = asset.thumbnail;
     }
 
@@ -27,17 +34,36 @@ router.get("/download/:id", async (req, res) => {
       return res.status(404).json({ success: false, message: "Asset file not found" });
     }
 
-    // Generate Presigned URL (valid for 1 hour)
-    const url = await minioClient.presignedGetObject(
-      process.env.MINIO_BUCKET_NAME || "assets",
-      objectName,
-      60 * 60
-    );
+    const bucketName = process.env.MINIO_BUCKET_NAME || "assets";
 
-    res.json({ success: true, url });
+    // Stream the file
+    const dataStream = await minioClient.getObject(bucketName, objectName);
+
+    // Determine mimeType
+    let mimeType = asset.mimeType;
+    if (type === 'thumbnail') {
+      const ext = objectName.split('.').pop()?.toLowerCase();
+      if (ext === 'webp') mimeType = 'image/webp';
+      else if (ext === 'png') mimeType = 'image/png';
+      else if (ext === 'jpg' || ext === 'jpeg') mimeType = 'image/jpeg';
+      else mimeType = 'application/octet-stream';
+    }
+
+    res.setHeader('Content-Type', mimeType || 'application/octet-stream');
+
+    // Optional: Set Content-Disposition for download
+    if (type !== 'thumbnail') {
+      res.setHeader('Content-Disposition', `attachment; filename="${asset.originalName}"`);
+    }
+
+    dataStream.pipe(res);
+
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false });
+    // If headers already sent, we can't send json
+    if (!res.headersSent) {
+      res.status(500).json({ success: false });
+    }
   }
 });
 

@@ -1,42 +1,34 @@
 import React, { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
-import { api } from '../api/client';
+import { assetService } from '../services/assetService';
 import { Upload as UploadIcon, File, X, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from 'sonner';
 
 export const Upload: React.FC = () => {
     const [files, setFiles] = useState<File[]>([]);
 
     const uploadMutation = useMutation({
-        mutationFn: async (filesToUpload: File[]) => {
-            const formData = new FormData();
-            filesToUpload.forEach((file) => {
-                formData.append('files', file);
-            });
-            const response = await api.post('/upload', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            });
-            return response.data;
-        },
+        mutationFn: assetService.upload,
         onSuccess: () => {
             setFiles([]);
-            alert('Upload successful!');
+            toast.success('Upload successful!');
         },
         onError: (error) => {
             console.error('Upload failed:', error);
-            alert('Upload failed. Check console.');
+            // toast.error('Upload failed'); // Handled by interceptor usually, but safe to keep if needed
         }
     });
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files) {
-            setFiles(Array.from(e.target.files));
+            setFiles(prev => [...prev, ...Array.from(e.target.files || [])]);
         }
     };
 
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         if (e.dataTransfer.files) {
-            setFiles(Array.from(e.dataTransfer.files));
+            setFiles(prev => [...prev, ...Array.from(e.dataTransfer.files)]);
         }
     };
 

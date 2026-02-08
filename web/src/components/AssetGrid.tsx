@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { api } from '../api/client';
-import type { Asset, ApiResponse } from '../types';
+import { assetService } from '../services/assetService';
 import { Search, Filter, Play, Image as ImageIcon, File } from 'lucide-react';
 
 export const AssetGrid: React.FC = () => {
@@ -11,17 +10,7 @@ export const AssetGrid: React.FC = () => {
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['assets', page, type, search],
-        queryFn: async () => {
-            const params = new URLSearchParams({
-                page: page.toString(),
-                limit: '12',
-            });
-            if (type) params.append('type', type);
-            if (search) params.append('search', search);
-
-            const res = await api.get<ApiResponse<Asset[]>>(`/assets?${params.toString()}`);
-            return res.data;
-        },
+        queryFn: () => assetService.getAll({ page, limit: 12, type, search }),
     });
 
     const assets = data?.data || [];
