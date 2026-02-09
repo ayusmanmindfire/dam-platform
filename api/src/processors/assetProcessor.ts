@@ -5,6 +5,24 @@ import { redis } from "../config/redist.js";
 import fs from "fs";
 import path from "path";
 import os from "os";
+import ffmpegStatic from "ffmpeg-static";
+import ffprobeStatic from "ffprobe-static";
+
+// Configure ffmpeg to use static binaries
+console.log("ffmpegStatic value:", ffmpegStatic);
+console.log("ffmpegStatic type:", typeof ffmpegStatic);
+if (ffmpegStatic) {
+    // @ts-ignore - Debugging type issue
+    ffmpeg.setFfmpegPath(ffmpegStatic);
+} else {
+    console.error("FFmpeg static binary not found!");
+}
+
+if (ffprobeStatic && ffprobeStatic.path) {
+    ffmpeg.setFfprobePath(ffprobeStatic.path);
+} else {
+    console.error("FFprobe static binary not found!");
+}
 
 const TEMP_DIR = os.tmpdir();
 

@@ -3,14 +3,18 @@ import { useMutation } from '@tanstack/react-query';
 import { assetService } from '../services/assetService';
 import { Upload as UploadIcon, File, X, CheckCircle, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
+
 
 export const Upload: React.FC = () => {
     const [files, setFiles] = useState<File[]>([]);
+    const navigate=useNavigate();
 
     const uploadMutation = useMutation({
         mutationFn: assetService.upload,
         onSuccess: () => {
             setFiles([]);
+            navigate('/assets');    
             toast.success('Upload successful!');
         },
         onError: (error) => {
