@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { assetService } from '../services/assetService';
-import { Search, Filter, Play, Image as ImageIcon, File } from 'lucide-react';
+import { Search, Filter, Play, Image as ImageIcon, File, Eye } from 'lucide-react';
+import { AssetPreviewModal } from './AssetPreviewModal';
 
 export const AssetGrid: React.FC = () => {
     const [page, setPage] = useState(1);
     const [type, setType] = useState<string>('');
     const [search, setSearch] = useState('');
+    const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['assets', page, type, search],
@@ -62,7 +64,7 @@ export const AssetGrid: React.FC = () => {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {assets.map((asset) => (
+                    {assets.map((asset: any) => (
                         <div key={asset.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow overflow-hidden group">
                             {/* Thumbnail Area */}
                             <div className="aspect-video bg-gray-100 relative overflow-hidden flex items-center justify-center">
@@ -70,7 +72,8 @@ export const AssetGrid: React.FC = () => {
                                     <img
                                         src={`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/assets/download/${asset.id}?type=thumbnail`}
                                         alt={asset.originalName}
-                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105 cursor-pointer"
+                                        onClick={() => setSelectedAsset(asset)}
                                     />
                                 ) : (
                                     <div className="text-gray-300">
@@ -79,10 +82,18 @@ export const AssetGrid: React.FC = () => {
                                     </div>
                                 )}
 
-                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 gap-2 pointer-events-none group-hover:pointer-events-auto">
                                     <button
-                                        className="bg-white text-gray-900 px-4 py-2 rounded-full font-medium text-sm shadow-lg hover:bg-gray-100 transform translate-y-2 group-hover:translate-y-0 transition-all"
+                                        className="bg-white text-gray-900 px-3 py-2 rounded-full font-medium text-sm shadow-lg hover:bg-gray-100 transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-1"
+                                        onClick={() => setSelectedAsset(asset)}
+                                        title="Preview"
+                                    >
+                                        <Eye size={16} />
+                                    </button>
+                                    <button
+                                        className="bg-white text-gray-900 px-3 py-2 rounded-full font-medium text-sm shadow-lg hover:bg-gray-100 transform translate-y-2 group-hover:translate-y-0 transition-all flex items-center gap-1"
                                         onClick={() => window.open(`${import.meta.env.VITE_API_URL || 'http://localhost:4000'}/assets/download/${asset.id}`, '_blank')}
+                                        title="Download"
                                     >
                                         Download
                                     </button>
@@ -96,7 +107,7 @@ export const AssetGrid: React.FC = () => {
                             </div>
 
                             {/* Info Area */}
-                            <div className="p-4">
+                            <div className="p-4" onClick={() => setSelectedAsset(asset)} role="button">
                                 <h3 className="font-semibold text-gray-800 truncate" title={asset.originalName}>{asset.originalName}</h3>
                                 <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
                                     <span className="uppercase bg-gray-100 px-2 py-0.5 rounded">{asset.mimeType.split('/')[1]}</span>
@@ -127,6 +138,14 @@ export const AssetGrid: React.FC = () => {
                         Next
                     </button>
                 </div>
+            )}
+
+            {/* Preview Modal */}
+            {selectedAsset && (
+                <AssetPreviewModal
+                    asset={selectedAsset}
+                    onClose={() => setSelectedAsset(null)}
+                />
             )}
         </div>
     );
