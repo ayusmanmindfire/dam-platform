@@ -24,3 +24,10 @@ export interface ApiResponse<T> {
     data: T;
     pagination?: Pagination;
 }
+
+export interface Stats {
+    totalAssets: number;
+    totalImages: number;
+    totalVideos: number;
+    storageUsed?: number; // Optional, as backend might not implement it fully yet
+}
