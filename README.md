@@ -1,47 +1,145 @@
 # Digital Asset Management (DAM) Platform
 
-A clear, scalable, and modern solution for managing digital assets. This platform enables users to upload, process, tag, and organize images and videos efficiently using a microservices architecture.
+A scalable, microservices-based Digital Asset Management platform for uploading, processing, organizing, and retrieving images and videos.  
+The system is designed to keep the API responsive by offloading heavy processing tasks to background workers.
 
-```mermaid
-graph TD
-    User((User))
-    subgraph "Frontend"
-        Web[Web App (React)]
-    end
-    subgraph "Backend Services"
-        API[API Server (Express)]
-        Worker[Worker Service (BullMQ)]
-    end
-    subgraph "Infrastructure"
-        MinIO[(MinIO Storage)]
-        Redis[(Redis Cache/Queue)]
-    end
+---
 
-    User -->|Interacts| Web
-    Web -->|HTTP Requests| API
-    API -->|Upload/Download| MinIO
-    API -->|Enqueue Jobs| Redis
-    Worker -->|Process Jobs| Redis
-    Worker -->|Read/Write Assets| MinIO
-```
+## 🏗️ System Architecture
 
-## 🚀 Features
+### High-Level Architecture Diagram
 
-- **Multi-File Upload**: Drag & drop support for multiple files.
-- **Background Processing**: Automatic thumbnail generation and video metadata extraction using BullMQ workers.
-- **Asset Gallery**: Filterable and searchable grid view of assets.
-- **Preview & Download**: Direct streaming of original assets and thumbnails.
-- **Modern UI**: Built with React, Tailwind CSS v4, and Shadcn UI.
-- **Scalable Backend**: Node.js/Express API with Redis for caching and queues, MinIO for object storage.
-- **Containerized**: Full Docker and Docker Swarm support for easy deployment.
+![DAM Architecture Diagram](./assets/architecture.png)
 
-## 🏗 Architecture
+> High-level overview of the Digital Asset Management platform
 
-The project is structured as a monorepo with the following components:
+---
 
-- **`web/`**: Frontend application (React + Vite + TypeScript).
-- **`api/`**: Backend API and Worker process (Node.js + Express + BullMQ).
-- **`api/infra/`**: Infrastructure configuration (Docker Compose, Swarm).
+## 🔁 Data Flow Overview
+
+1. User uploads a file from the **Frontend Web App**
+2. The **Backend API Server**:
+   - Streams the file directly to **MinIO**
+   - Stores asset metadata in **Redis**
+   - Pushes a processing job to the **Redis queue**
+3. The **Worker Service**:
+   - Pulls jobs from Redis (BullMQ)
+   - Downloads original files from MinIO
+   - Generates thumbnails or extracts video metadata
+   - Uploads processed files back to MinIO
+   - Updates asset status in Redis
+4. The frontend fetches updated status from the API and displays the processed asset
+
+---
+
+## 🧩 Architecture Components
+
+### Frontend (Web App)
+**Tech Stack**
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Shadcn UI
+
+**Responsibilities**
+- File uploads
+- Asset gallery & previews
+- Display processing status
+
+---
+
+### Backend API Server
+**Tech Stack**
+- Node.js
+- Express
+
+**Responsibilities**
+- Handle HTTP requests
+- Stream uploads to MinIO
+- Store asset metadata in Redis
+- Dispatch background jobs
+
+---
+
+### Worker Service (Background Processor)
+**Tech Stack**
+- Node.js
+- BullMQ
+- FFmpeg
+- Sharp
+
+**Responsibilities**
+- Consume jobs from Redis
+- Generate image thumbnails
+- Extract video metadata and screenshots
+- Upload processed outputs to MinIO
+- Update job and asset status
+
+---
+
+### Infrastructure & Data Layer
+
+#### MinIO (Object Storage)
+- Stores original images and videos
+- Stores generated thumbnails and derived assets
+- S3-compatible storage
+
+#### Redis (Database & Queue)
+- Primary metadata store for assets
+- Message broker for background jobs (BullMQ)
+
+---
+
+## 🖥️ User Interface Screenshots
+
+### Dashboard
+
+![Dashboard](./assets/ui-dashboard.png)
+
+- Asset listing with processing status
+- Quick preview of images and videos
+
+---
+
+### Upload Flow
+
+![Upload](./assets/ui-upload.png)
+
+- Drag-and-drop file upload
+- Immediate feedback on upload progress
+
+---
+
+### Asset Details
+
+![Asset Details](./assets/ui-asset-details.png)
+
+- Metadata view
+- Thumbnail preview
+- Processing status
+
+---
+
+## 🎯 Key Design Decisions
+
+- **Asynchronous processing** to keep API fast
+- **Streaming uploads** to avoid memory pressure
+- **Clear separation** between API and worker services
+- **Object storage-first** design for large media files
+- **Redis-backed queue** for reliable job handling
+
+---
+
+## 🚀 Future Enhancements
+
+- Authentication & role-based access
+- Search and filtering
+- Asset versioning
+- CDN integration
+- Horizontal worker scaling
+
+---
 
 ## 🛠 Prerequisites
 
@@ -68,6 +166,7 @@ cd api
 npm install
 npm run dev      # Starts API Server on port 4000
 ```
+
 Open a **new terminal** for the worker (required for thumbnails):
 ```bash
 cd api
