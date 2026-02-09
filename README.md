@@ -9,9 +9,14 @@ The system is designed to keep the API responsive by offloading heavy processing
 
 ### High-Level Architecture Diagram
 
-![DAM Architecture Diagram](./assets/architecture.png)
+![High Level Workflow](./assets/highlevel-diagram.png)
 
 > High-level overview of the Digital Asset Management platform
+
+### Detailed Workflow
+
+![DAM Architecture Diagram](./assets/architecture.png)
+
 
 ---
 
