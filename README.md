@@ -2,6 +2,29 @@
 
 A clear, scalable, and modern solution for managing digital assets. This platform enables users to upload, process, tag, and organize images and videos efficiently using a microservices architecture.
 
+```mermaid
+graph TD
+    User((User))
+    subgraph "Frontend"
+        Web[Web App (React)]
+    end
+    subgraph "Backend Services"
+        API[API Server (Express)]
+        Worker[Worker Service (BullMQ)]
+    end
+    subgraph "Infrastructure"
+        MinIO[(MinIO Storage)]
+        Redis[(Redis Cache/Queue)]
+    end
+
+    User -->|Interacts| Web
+    Web -->|HTTP Requests| API
+    API -->|Upload/Download| MinIO
+    API -->|Enqueue Jobs| Redis
+    Worker -->|Process Jobs| Redis
+    Worker -->|Read/Write Assets| MinIO
+```
+
 ## 🚀 Features
 
 - **Multi-File Upload**: Drag & drop support for multiple files.
